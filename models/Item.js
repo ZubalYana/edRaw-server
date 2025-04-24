@@ -6,6 +6,7 @@ const itemSchema = new mongoose.Schema({
     prices: Array,
     description: String,
     rate: Number,
+    type: String
 });
 
 module.exports = mongoose.model('Item', itemSchema);

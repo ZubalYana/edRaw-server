@@ -27,7 +27,7 @@ app.post('/createItem', upload.single("img"), async (req, res) => {
             return res.status(400).json({ success: false, message: "Image upload failed" });
         }
 
-        const { name, prices, description, rate } = req.body;
+        const { name, prices, description, rate, type } = req.body;
 
         let parsedPrices = [];
         if (Array.isArray(prices)) {
@@ -44,6 +44,7 @@ app.post('/createItem', upload.single("img"), async (req, res) => {
             description,
             rate: Number(rate),
             img: req.file.path,
+            type,
         });
 
         await newItem.save();
