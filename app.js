@@ -55,6 +55,15 @@ app.post('/createItem', upload.single("img"), async (req, res) => {
     }
 });
 
+app.get('/items', async (req, res) => {
+    try {
+        const items = await Item.find();
+        res.status(200).json({ success: true, items });
+    } catch (err) {
+        console.error("Error occurred:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
+        res.status(500).json({ success: false, message: err.message || 'Server Error' });
+    }
+});
 
 
 
