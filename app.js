@@ -81,7 +81,7 @@ app.post('/createReview', upload.single("img"), async (req, res) => {
         res.status(201).json({ success: true, review: newReview })
 
     } catch (err) {
-        console.error("Error occured:", JSON.stringify(err))
+        console.error("Error occurred:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
         res.status(500).json({ success: false, message: err.message || 'Server Error' })
     }
 })
@@ -96,7 +96,14 @@ app.get('/items', async (req, res) => {
     }
 });
 
-
-
+app.get('/reviews', async (req, res) => {
+    try {
+        const reviews = await Review.find();
+        res.status(200).json({ success: true, reviews })
+    } catch (err) {
+        console.error("Error occurred:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
+        res.status(500).json({ success: false, message: err.messagte || 'Server Error' })
+    }
+})
 
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
