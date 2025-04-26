@@ -4,6 +4,7 @@ const dotenv = require('dotenv').config();
 const PORT = process.env.PORT || 5000;
 const mongoose = require('mongoose');
 const Item = require('./models/Item');
+const Review = require('./models/Review')
 const { upload } = require('./cloudinary');
 const cors = require('cors');
 
@@ -16,9 +17,6 @@ mongoose.connect(process.env.MONGO_URI)
 
 app.post('/createItem', upload.single("img"), async (req, res) => {
     try {
-        console.log('📦 Body:', JSON.stringify(req.body, null, 2));
-        console.log('🖼️ File:', req.file);
-
         if (!req.file) {
             return res.status(400).json({ success: false, message: "Image file is required" });
         }
@@ -53,10 +51,40 @@ app.post('/createItem', upload.single("img"), async (req, res) => {
         res.status(201).json({ success: true, item: newItem });
 
     } catch (err) {
-        console.error("❌ Error occurred:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
+        console.error("Error occurred:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
         res.status(500).json({ success: false, message: err.message || 'Server Error' });
     }
 });
+
+app.post('/createReview', upload.single("img"), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: "Image file is required" });
+        }
+        if (req.file && req.file.path) {
+            console.log('Image URL:', req.file.path);
+        } else {
+            return res.status(400).json({ success: false, message: "Image upload failed" });
+        }
+
+        const { name, position, rate, text } = req.body;
+
+        const newReview = new Review({
+            name,
+            position,
+            rate,
+            text,
+            img: req.file.path,
+        });
+
+        await newReview.save()
+        res.status(201).json({ success: true, review: newReview })
+
+    } catch (err) {
+        console.error("Error occured:", JSON.stringify(err))
+        res.status(500).json({ success: false, message: err.message || 'Server Error' })
+    }
+})
 
 app.get('/items', async (req, res) => {
     try {
