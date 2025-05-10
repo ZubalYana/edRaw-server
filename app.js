@@ -5,8 +5,12 @@ const PORT = process.env.PORT || 5000;
 const mongoose = require('mongoose');
 const Item = require('./models/Item');
 const Review = require('./models/Review')
+const TelegramUser = require('./models/TelegramUser');
 const { upload } = require('./cloudinary');
 const cors = require('cors');
+const TelegramBot = require('node-telegram-bot-api');
+const token = process.env.TELEGRAM_TOKEN;
+const bot = new TelegramBot(token, { polling: true });
 
 app.use(cors());
 app.use(express.json());
@@ -105,5 +109,33 @@ app.get('/reviews', async (req, res) => {
         res.status(500).json({ success: false, message: err.messagte || 'Server Error' })
     }
 })
+
+bot.on('message', async (msg) => {
+    try {
+        const chatId = msg.chat.id;
+
+        const userExists = await TelegramUser.findOne({ chatId });
+        if (!userExists) {
+            const newUser = new TelegramUser({ chatId });
+            await newUser.save();
+        }
+
+        bot.sendMessage(chatId, 'Hello!');
+    } catch (err) {
+        console.error('Error storing chatId:', err);
+    }
+});
+
+app.post('/sendOrderDetails', async (req, res) => {
+    const chatId = 1132590035;
+    const { cart, userName, userEmail } = req.body;
+    console.log(cart)
+    const formattedOrder = cart.map(item => {
+        const lastPrice = item.prices[item.prices.length - 1];
+        return `${item.name} - $${lastPrice}${item.quantity ? ` x${item.quantity}` : ''}`
+    }).join('\n');
+    bot.sendMessage(chatId, `You've got a new order from ${userName} - ${userEmail}\n\nCart:\n${formattedOrder}\n\nTotal: ${cart.reduce((acc, item) => acc + item.prices[item.prices.length - 1] * (item.quantity || 1), 0)}$`);
+    res.status(200).json({ success: true });
+});
 
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
