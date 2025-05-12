@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 const Item = require('./models/Item');
 const Review = require('./models/Review')
 const TelegramUser = require('./models/TelegramUser');
+const Order = require('./models/Order');
 const { upload } = require('./cloudinary');
 const cors = require('cors');
 const TelegramBot = require('node-telegram-bot-api');
@@ -130,7 +131,6 @@ bot.on('message', async (msg) => {
     }
 });
 
-
 app.post('/sendOrderDetails', async (req, res) => {
     const adminChatId = 1132590035;
     const { cart, userName, userPhone, userComment } = req.body;
@@ -172,7 +172,6 @@ app.post('/sendOrderDetails', async (req, res) => {
     res.status(200).json({ success: true });
 });
 
-
 bot.on('callback_query', async (query) => {
     const chatId = query.message.chat.id;
     const data = query.data;
@@ -186,6 +185,14 @@ bot.on('callback_query', async (query) => {
 
     if (action === 'accept') {
         bot.sendMessage(chatId, '✅ Order accepted and saved!');
+        const order = new Order({
+            cart: orderData.cart,
+            userName: orderData.userName,
+            userPhone: orderData.userPhone,
+            userComment: orderData.userComment,
+            timestamp: orderData.timestamp,
+        });
+        await order.save();
     } else if (action === 'reject') {
         bot.sendMessage(chatId, '❌ Order rejected.');
     }
