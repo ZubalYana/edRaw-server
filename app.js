@@ -128,14 +128,22 @@ bot.on('message', async (msg) => {
 
 app.post('/sendOrderDetails', async (req, res) => {
     const chatId = 1132590035;
-    const { cart, userName, userPhone } = req.body;
-    console.log(cart)
+    const { cart, userName, userPhone, userComment } = req.body;
+    console.log(cart);
     const formattedOrder = cart.map(item => {
         const lastPrice = item.prices[item.prices.length - 1];
-        return `${item.name} - $${lastPrice}${item.quantity ? ` x${item.quantity}` : ''}`
+        return `🛒 ${item.name} - $${lastPrice}${item.quantity ? ` x${item.quantity}` : ''}`;
     }).join('\n');
-    bot.sendMessage(chatId, `You've got a new order from ${userName} - ${userPhone}\n\nCart:\n${formattedOrder}\n\nTotal: ${cart.reduce((acc, item) => acc + item.prices[item.prices.length - 1] * (item.quantity || 1), 0)}$`);
+    const total = cart.reduce((acc, item) => acc + item.prices[item.prices.length - 1] * (item.quantity || 1), 0);
+    let message = `📦 *New Order Received!*\n👤 Name: ${userName}\n📞 Phone: ${userPhone}\n\n🧾 *Cart:*\n${formattedOrder}\n\n💰 *Total:* $${total}`;
+    if (userComment.trim()) {
+        message += `\n\n💬 *Comment:* ${userComment}`;
+    }
+    bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+
     res.status(200).json({ success: true });
 });
+
+
 
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
