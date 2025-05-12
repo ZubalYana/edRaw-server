@@ -11,7 +11,11 @@ const cors = require('cors');
 const TelegramBot = require('node-telegram-bot-api');
 const token = process.env.TELEGRAM_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
-
+const { InlineKeyboardButton } = require('node-telegram-bot-api');
+const { customAlphabet } = require('nanoid');
+const nanoid = customAlphabet('1234567890abcdef', 10);
+const tempOrderId = nanoid();
+const tempOrders = {};
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -126,22 +130,68 @@ bot.on('message', async (msg) => {
     }
 });
 
+
 app.post('/sendOrderDetails', async (req, res) => {
-    const chatId = 1132590035;
+    const adminChatId = 1132590035;
     const { cart, userName, userPhone, userComment } = req.body;
-    console.log(cart);
+
     const formattedOrder = cart.map(item => {
         const lastPrice = item.prices[item.prices.length - 1];
         return `🛒 ${item.name} - $${lastPrice}${item.quantity ? ` x${item.quantity}` : ''}`;
     }).join('\n');
+
     const total = cart.reduce((acc, item) => acc + item.prices[item.prices.length - 1] * (item.quantity || 1), 0);
+
     let message = `📦 *New Order Received!*\n👤 Name: ${userName}\n📞 Phone: ${userPhone}\n\n🧾 *Cart:*\n${formattedOrder}\n\n💰 *Total:* $${total}`;
-    if (userComment.trim()) {
+    if (userComment?.trim()) {
         message += `\n\n💬 *Comment:* ${userComment}`;
     }
-    bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+
+    const tempOrderId = nanoid();
+    tempOrders[tempOrderId] = {
+        cart,
+        userName,
+        userPhone,
+        userComment,
+        total,
+        timestamp: Date.now()
+    };
+
+    bot.sendMessage(adminChatId, message, {
+        parse_mode: 'Markdown',
+        reply_markup: {
+            inline_keyboard: [
+                [
+                    { text: "✅ Accept", callback_data: `accept_${tempOrderId}` },
+                    { text: "❌ Reject", callback_data: `reject_${tempOrderId}` }
+                ]
+            ]
+        }
+    });
 
     res.status(200).json({ success: true });
+});
+
+
+bot.on('callback_query', async (query) => {
+    const chatId = query.message.chat.id;
+    const data = query.data;
+
+    const [action, orderId] = data.split('_');
+    const orderData = tempOrders[orderId];
+
+    if (!orderData) {
+        return bot.answerCallbackQuery(query.id, { text: '⚠️ Order not found or expired.', show_alert: true });
+    }
+
+    if (action === 'accept') {
+        bot.sendMessage(chatId, '✅ Order accepted and saved!');
+    } else if (action === 'reject') {
+        bot.sendMessage(chatId, '❌ Order rejected.');
+    }
+
+    delete tempOrders[orderId];
+    bot.answerCallbackQuery(query.id);
 });
 
 
